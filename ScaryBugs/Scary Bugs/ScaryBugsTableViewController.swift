@@ -127,6 +127,43 @@ class ScaryBugsTableViewController: UITableViewController {
         }
     }
     
+    override func tableView(tableView: UITableView, canMoveRowAtIndexPath indexPath: NSIndexPath) -> Bool {
+        let bugSection = bugSections[indexPath.section]
+        if indexPath.row >= bugSection.bugs.count && self.editing {
+            return false
+        }
+        return true
+    }
+    
+    override func tableView(tableView: UITableView, moveRowAtIndexPath sourceIndexPath: NSIndexPath, toIndexPath destinationIndexPath: NSIndexPath) {
+        let sourceSection = bugSections[sourceIndexPath.section]
+        let bugToMove = sourceSection.bugs[sourceIndexPath.row]
+        let destinationSection = bugSections[destinationIndexPath.section]
+        if sourceSection == destinationSection {
+            swap(&destinationSection.bugs[destinationIndexPath.row], &sourceSection.bugs[sourceIndexPath.row])
+        } else {
+            bugToMove.howScary = destinationSection.howScary
+            destinationSection.bugs.insert(bugToMove, atIndex: destinationIndexPath.row)
+            sourceSection.bugs.removeAtIndex(sourceIndexPath.row)
+            
+            let delayInSeconds:Double = 0.2
+            let dispatchTime = Int64(delayInSeconds * Double(NSEC_PER_SEC))
+            let popTime = dispatch_time(DISPATCH_TIME_NOW, dispatchTime)
+            dispatch_after(popTime, dispatch_get_main_queue(), { () -> Void in
+                self.tableView.reloadRowsAtIndexPaths([destinationIndexPath], withRowAnimation: .None)
+            })
+        }
+    }
+    
+    override func tableView(tableView: UITableView, targetIndexPathForMoveFromRowAtIndexPath sourceIndexPath: NSIndexPath, toProposedIndexPath proposedDestinationIndexPath: NSIndexPath) -> NSIndexPath {
+        
+        let bugSection = bugSections[proposedDestinationIndexPath.section]
+        if proposedDestinationIndexPath.row >= bugSection.bugs.count {
+            return NSIndexPath(forRow: bugSection.bugs.count-1, inSection: proposedDestinationIndexPath.section)
+        }
+        return proposedDestinationIndexPath
+    }
+    
     // MARK: - Private
     
     private func setupBugs() {
